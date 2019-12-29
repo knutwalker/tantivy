@@ -14,6 +14,7 @@ pub use self::index_meta::{IndexMeta, SegmentMeta, SegmentMetaInventory};
 pub use self::inverted_index_reader::InvertedIndexReader;
 pub use self::searcher::Searcher;
 pub use self::segment::Segment;
+pub(crate) use self::segment::SegmentDirectory;
 pub use self::segment::SerializableSegment;
 pub use self::segment_component::SegmentComponent;
 pub use self::segment_id::SegmentId;

@@ -1,6 +1,7 @@
 use super::segment_register::SegmentRegister;
 use crate::core::SegmentId;
 use crate::core::SegmentMeta;
+use crate::directory::ManagedDirectory;
 use crate::indexer::delete_queue::DeleteCursor;
 use crate::indexer::SegmentEntry;
 use std::collections::hash_set::HashSet;
@@ -74,13 +75,14 @@ pub fn get_mergeable_segments(
 
 impl SegmentManager {
     pub fn from_segments(
+        directory: &ManagedDirectory,
         segment_metas: Vec<SegmentMeta>,
         delete_cursor: &DeleteCursor,
     ) -> SegmentManager {
         SegmentManager {
             registers: RwLock::new(SegmentRegisters {
                 uncommitted: SegmentRegister::default(),
-                committed: SegmentRegister::new(segment_metas, delete_cursor),
+                committed: SegmentRegister::new(directory, segment_metas, delete_cursor),
             }),
         }
     }

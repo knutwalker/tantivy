@@ -232,11 +232,11 @@ fn index_documents(
         &doc_opstamps,
         last_docstamp,
     )?;
-
     let segment_entry = SegmentEntry::new(
         segment_with_max_doc.meta().clone(),
         delete_cursor,
         delete_bitset_opt,
+        segment_with_max_doc.directory().clone(),
     );
     block_on(segment_updater.schedule_add_segment(segment_entry))?;
     Ok(true)
@@ -375,13 +375,6 @@ impl IndexWriter {
         result
     }
 
-    #[doc(hidden)]
-    pub fn add_segment(&self, segment_meta: SegmentMeta) -> crate::Result<()> {
-        let delete_cursor = self.delete_queue.cursor();
-        let segment_entry = SegmentEntry::new(segment_meta, delete_cursor, None);
-        block_on(self.segment_updater.schedule_add_segment(segment_entry))
-    }
-
     /// Creates a new segment.
     ///
     /// This method is useful only for users trying to do complex
@@ -430,7 +423,7 @@ impl IndexWriter {
                         // was dropped.
                         return Ok(());
                     }
-                    let segment = index.new_segment();
+                    let segment = index.new_segment_unpersisted();
                     index_documents(
                         mem_budget,
                         segment,

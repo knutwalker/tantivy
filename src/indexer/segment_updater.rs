@@ -138,7 +138,12 @@ fn merge(
 
     let segment_meta = index.new_segment_meta(merged_segment.id(), num_docs);
 
-    Ok(SegmentEntry::new(segment_meta, delete_cursor, None))
+    Ok(SegmentEntry::new(
+        segment_meta,
+        delete_cursor,
+        None,
+        merged_segment.directory().clone(),
+    ))
 }
 
 pub(crate) struct InnerSegmentUpdater {
@@ -167,7 +172,8 @@ impl SegmentUpdater {
         delete_cursor: &DeleteCursor,
     ) -> crate::Result<SegmentUpdater> {
         let segments = index.searchable_segment_metas()?;
-        let segment_manager = SegmentManager::from_segments(segments, delete_cursor);
+        let segment_manager =
+            SegmentManager::from_segments(index.directory(), segments, delete_cursor);
         let pool = ThreadPoolBuilder::new()
             .name_prefix("segment_updater")
             .pool_size(1)
@@ -228,10 +234,12 @@ impl SegmentUpdater {
 
     pub fn schedule_add_segment(
         &self,
-        segment_entry: SegmentEntry,
+        mut segment_entry: SegmentEntry,
     ) -> impl Future<Output = crate::Result<()>> {
+        // TODO temporary: serializing the segment at this point.
         let segment_updater = self.clone();
         self.schedule_future(async move {
+            segment_entry.persist(segment_updater.index.directory().clone())?;
             segment_updater.segment_manager.add_segment(segment_entry);
             segment_updater.consider_merge_options().await;
             Ok(())

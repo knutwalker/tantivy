@@ -1,7 +1,10 @@
 use crate::common::BitSet;
+use crate::core::SegmentDirectory;
 use crate::core::SegmentId;
 use crate::core::SegmentMeta;
+use crate::directory::ManagedDirectory;
 use crate::indexer::delete_queue::DeleteCursor;
+use crate::Directory;
 use std::fmt;
 
 /// A segment entry describes the state of
@@ -22,20 +25,30 @@ pub struct SegmentEntry {
     meta: SegmentMeta,
     delete_bitset: Option<BitSet>,
     delete_cursor: DeleteCursor,
+    directory: SegmentDirectory,
 }
 
 impl SegmentEntry {
     /// Create a new `SegmentEntry`
-    pub fn new(
+    pub(crate) fn new(
         segment_meta: SegmentMeta,
         delete_cursor: DeleteCursor,
         delete_bitset: Option<BitSet>,
+        directory: SegmentDirectory,
     ) -> SegmentEntry {
         SegmentEntry {
             meta: segment_meta,
             delete_bitset,
             delete_cursor,
+            directory,
         }
+    }
+
+    pub fn persist(&mut self, mut directory: ManagedDirectory) -> crate::Result<()> {
+        //if let Some(volatile_directory) = self.volatile_directory.take() {}
+        unimplemented!();
+        self.directory = SegmentDirectory::Persisted(directory);
+        Ok(())
     }
 
     /// Return a reference to the segment entry deleted bitset.

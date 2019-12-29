@@ -1,5 +1,6 @@
-use crate::core::SegmentId;
 use crate::core::SegmentMeta;
+use crate::core::{SegmentDirectory, SegmentId};
+use crate::directory::ManagedDirectory;
 use crate::indexer::delete_queue::DeleteCursor;
 use crate::indexer::segment_entry::SegmentEntry;
 use std::collections::HashMap;
@@ -79,11 +80,20 @@ impl SegmentRegister {
         self.segment_states.get(segment_id).cloned()
     }
 
-    pub fn new(segment_metas: Vec<SegmentMeta>, delete_cursor: &DeleteCursor) -> SegmentRegister {
+    pub fn new(
+        directory: &ManagedDirectory,
+        segment_metas: Vec<SegmentMeta>,
+        delete_cursor: &DeleteCursor,
+    ) -> SegmentRegister {
         let mut segment_states = HashMap::new();
         for segment_meta in segment_metas {
             let segment_id = segment_meta.id();
-            let segment_entry = SegmentEntry::new(segment_meta, delete_cursor.clone(), None);
+            let segment_entry = SegmentEntry::new(
+                segment_meta,
+                delete_cursor.clone(),
+                None,
+                SegmentDirectory::from(directory.clone()),
+            );
             segment_states.insert(segment_id, segment_entry);
         }
         SegmentRegister { segment_states }
@@ -116,20 +126,21 @@ mod tests {
 
         {
             let segment_meta = inventory.new_segment_meta(segment_id_a, 0u32);
-            let segment_entry = SegmentEntry::new(segment_meta, delete_queue.cursor(), None);
+            let segment_entry = SegmentEntry::new(segment_meta, delete_queue.cursor(), None, None);
             segment_register.add_segment_entry(segment_entry);
         }
         assert_eq!(segment_ids(&segment_register), vec![segment_id_a]);
         {
             let segment_meta = inventory.new_segment_meta(segment_id_b, 0u32);
-            let segment_entry = SegmentEntry::new(segment_meta, delete_queue.cursor(), None);
+            let segment_entry = SegmentEntry::new(segment_meta, delete_queue.cursor(), None, None);
             segment_register.add_segment_entry(segment_entry);
         }
         segment_register.remove_segment(&segment_id_a);
         segment_register.remove_segment(&segment_id_b);
         {
             let segment_meta_merged = inventory.new_segment_meta(segment_id_merged, 0u32);
-            let segment_entry = SegmentEntry::new(segment_meta_merged, delete_queue.cursor(), None);
+            let segment_entry =
+                SegmentEntry::new(segment_meta_merged, delete_queue.cursor(), None, None);
             segment_register.add_segment_entry(segment_entry);
         }
         assert_eq!(segment_ids(&segment_register), vec![segment_id_merged]);
